@@ -13,10 +13,16 @@ spec:
       targetPort: game
       protocol: UDP
       name: game
+      {{- if .Values.config.nodePort.game }}
+      nodePort: {{ .Values.config.nodePort.game }}
+      {{- end }}
     - port: {{ .Values.config.queryPort }}
       targetPort: query
       protocol: UDP
       name: query
+      {{- if .Values.config.nodePort.query }}
+      nodePort: {{ .Values.config.nodePort.query }}
+      {{- end }}
   selector:
     app: "{{ .Chart.Name }}"
     release: "{{ .Release.Name }}"

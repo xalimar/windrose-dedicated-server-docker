@@ -18,6 +18,10 @@ config:
   queryPort: 7778
   multihome: "0.0.0.0"
   p2pProxyAddress: "127.0.0.1"
+  # Optional fixed NodePorts (30000-32767). Leave empty to let Kubernetes assign them.
+  nodePort:
+    game: ""
+    query: ""
   inviteCode: ""
   updateOnStart: true
   generateSettings: true

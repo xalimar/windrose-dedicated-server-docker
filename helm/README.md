@@ -102,6 +102,8 @@ All values have defaults. Override only what you need.
 | `config.maxPlayers` | `4` | Maximum concurrent players |
 | `config.port` | `7777` | Game UDP port |
 | `config.queryPort` | `7778` | Steam query UDP port |
+| `config.nodePort.game` | `""` | Fixed NodePort for game traffic (30000–32767). Empty = auto-assigned |
+| `config.nodePort.query` | `""` | Fixed NodePort for query traffic (30000–32767). Empty = auto-assigned |
 | `config.multihome` | `0.0.0.0` | Network interface to bind |
 | `config.p2pProxyAddress` | `127.0.0.1` | P2P proxy address |
 | `config.inviteCode` | `""` | Invite code override. Leave empty to auto-generate |
@@ -159,13 +161,39 @@ Daily restart via a `CronJob` that deletes the pod and lets the `Deployment` rec
 
 ## Ports
 
-The `Service` type is `NodePort`. Kubernetes assigns a random high port (30000–32767) on each cluster node that forwards to the container port. Connect to `<node-ip>:<assigned-nodePort>`.
+The `Service` type is `NodePort`. Rather than using the container ports (7777/7778) directly, Kubernetes assigns two random ports in the range 30000–32767 on every cluster node. These are the ports that external traffic — and your router's port forwarding rules — must target.
 
 | Name | Container port | Protocol |
 |------|---------------|----------|
 | game | `7777` | UDP |
 | query | `7778` | UDP |
 
-To use fixed node ports, set `service.nodePorts.game` and `service.nodePorts.query` in your values (not yet wired in the chart — add `nodePort:` to the Service template if needed).
+**Finding the assigned ports**
+
+After installing the chart, run:
+
+```bash
+kubectl get svc -n windrose
+```
+
+Example output:
+
+```
+NAME                    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)            AGE
+windrose-game           NodePort   10.96.45.123   <none>        7777:31234/UDP,7778:30891/UDP   2m
+```
+
+The number after `:` on each port entry is the NodePort — `31234` for game and `30891` for query in this example. Forward both of these UDP ports on your router to your cluster node's IP.
+
+**Using fixed ports instead of random ones**
+
+Set `config.nodePort.game` and `config.nodePort.query` in your values to pin specific ports (must be in the 30000–32767 range). Leave them empty (the default) to let Kubernetes assign them.
+
+```yaml
+config:
+  nodePort:
+    game: 31777
+    query: 31778
+```
 
 > Players join via **Invite Code**, not a direct IP. The invite code is written to `/data/R5/ServerDescription.json` after the first successful start.
