@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Release.Name }}"
+  labels:
+    app: "{{ .Chart.Name }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Chart.Name }}"
+      release: "{{ .Release.Name }}"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Chart.Name }}"
+        release: "{{ .Release.Name }}"
+    spec:
+      containers:
+      - name: "{{ .Chart.Name }}"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        ports:
+          - name: game
+            containerPort: {{ .Values.config.port }}
+            protocol: UDP
+          - name: query
+            containerPort: {{ .Values.config.queryPort }}
+            protocol: UDP
+        env:
+          - name: PUID
+            value: {{ .Values.config.puid | quote }}
+          - name: PGID
+            value: {{ .Values.config.pgid | quote }}
+          - name: PORT
+            value: {{ .Values.config.port | quote }}
+          - name: QUERYPORT
+            value: {{ .Values.config.queryPort | quote }}
+          - name: SERVER_NAME
+            value: {{ .Values.config.serverName | quote }}
+          - name: SERVER_NOTE
+            value: {{ .Values.config.serverNote | quote }}
+          - name: MAX_PLAYERS
+            value: {{ .Values.config.maxPlayers | quote }}
+          - name: MULTIHOME
+            value: {{ .Values.config.multihome | quote }}
+          - name: P2P_PROXY_ADDRESS
+            value: {{ .Values.config.p2pProxyAddress | quote }}
+          - name: INVITE_CODE
+            value: {{ .Values.config.inviteCode | quote }}
+          - name: UPDATE_ON_START
+            value: {{ .Values.config.updateOnStart | quote }}
+          - name: GENERATE_SETTINGS
+            value: {{ .Values.config.generateSettings | quote }}
+          - name: STEAM_LOGIN
+            value: anonymous
+          - name: WINEARCH
+            value: win64
+          - name: WINEPREFIX
+            value: /home/steam/.wine
+          - name: WINEDEBUG
+            value: "-all"
+          - name: DISPLAY
+            value: ":99"
+          - name: SERVER_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Release.Name }}-server-password"
+                key: password
+                optional: true
+        volumeMounts:
+        - name: windrose-data
+          mountPath: /data
+        - name: windrose-steam-home
+          mountPath: /home/steam
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep {{ .Values.config.restart.gracefulTimeout | default 30 }}"]
+      volumes:
+      - name: windrose-data
+        persistentVolumeClaim:
+          claimName: "{{ .Release.Name }}-data"
+      - name: windrose-steam-home
+        persistentVolumeClaim:
+          claimName: "{{ .Release.Name }}-steam-home"

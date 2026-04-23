@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Release.Name }}-game"
+  labels:
+    app: "{{ .Chart.Name }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+spec:
+  type: NodePort
+  ports:
+    - port: {{ .Values.config.port }}
+      targetPort: game
+      protocol: UDP
+      name: game
+    - port: {{ .Values.config.queryPort }}
+      targetPort: query
+      protocol: UDP
+      name: query
+  selector:
+    app: "{{ .Chart.Name }}"
+    release: "{{ .Release.Name }}"

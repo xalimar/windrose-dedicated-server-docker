@@ -1,0 +1,46 @@
+image:
+  repository: ghcr.io/uberdudepl/windrose-dedicated-server-docker
+  tag: latest
+
+volumes:
+  # Leave empty to use the cluster's default StorageClass
+  storageClassName: ""
+  dataPVC:
+    size: 10Gi
+  steamHomePVC:
+    size: 5Gi
+
+config:
+  serverName: ""
+  serverNote: ""
+  maxPlayers: 4
+  port: 7777
+  queryPort: 7778
+  multihome: "0.0.0.0"
+  p2pProxyAddress: "127.0.0.1"
+  inviteCode: ""
+  updateOnStart: true
+  generateSettings: true
+  puid: 1000
+  pgid: 1000
+  # Daily restart configuration
+  restart:
+    enabled: false
+    # Timezone for the restart schedule (e.g., UTC, America/Los_Angeles, Europe/London)
+    timezone: "UTC"
+    hour: "06"  # 24-hour format in specified timezone
+    minute: "00"
+    # Time in seconds to wait for graceful shutdown
+    gracefulTimeout: 30
+  password:
+    # Set to true to use Sealed Secrets (requires bitnami/sealed-secrets in your cluster)
+    sealed: false
+    # Plaintext password when sealed is false. Leave empty for no server password.
+    value: ""
+    # Encrypted value when sealed is true. Generate with: kubeseal --raw --namespace <ns> --name <release>-server-password
+    sealedValue: ""
+
+resources:
+  requests:
+    memory: 4G
+    cpu: 1.0

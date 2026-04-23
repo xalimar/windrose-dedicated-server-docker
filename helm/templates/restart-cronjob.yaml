@@ -1,0 +1,40 @@
+{{- if .Values.config.restart.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: "{{ .Release.Name }}-daily-restart"
+  labels:
+    app: "{{ .Chart.Name }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+spec:
+  schedule: "{{ .Values.config.restart.minute }} {{ .Values.config.restart.hour }} * * *"
+  timeZone: {{ .Values.config.restart.timezone | default "UTC" | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: "{{ .Release.Name }}-restarter"
+          containers:
+          - name: kubectl
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              kubectl delete pod -n {{ .Release.Namespace }} -l "app={{ .Chart.Name }},release={{ .Release.Name }}" --wait=false
+
+              sleep 60
+
+              if kubectl get pod -n {{ .Release.Namespace }} -l "app={{ .Chart.Name }},release={{ .Release.Name }}" -o jsonpath='{.items[0].status.phase}' | grep -q "Running"; then
+                echo "Server restarted successfully"
+                exit 0
+              else
+                echo "Server failed to restart within expected time"
+                exit 1
+              fi
+          restartPolicy: OnFailure
+{{- end }}
